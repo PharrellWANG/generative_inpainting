@@ -2,3 +2,4 @@ model_logs
 neuralgym_logs
 data
 .idea/
+__pychache_/

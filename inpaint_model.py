@@ -291,21 +291,20 @@ class InpaintCAModel(Model):
                 tf.constant(config.HEIGHT), tf.constant(config.WIDTH))
         return self.build_infer_graph(batch_data, config, bbox, name)
 
-
     def build_server_graph(self, batch_data, reuse=False, is_training=False):
         """
         """
         # generate mask, 1 represents masked point
         batch_raw, masks_raw = tf.split(batch_data, 2, axis=2)
-        masks = tf.cast(masks_raw[0:1, :, :, 0:1] > 127.5, tf.float32)
+        masks = tf.cast(masks_raw[0:1, :, :, 0:1] > 127.5, tf.float32)  # pharrell note: 255 is white, write cast to 1.0, black cast to 0.0.
 
-        batch_pos = batch_raw / 127.5 - 1.
-        batch_incomplete = batch_pos * (1. - masks)
+        batch_pos = batch_raw / 127.5 - 1.  # pharrell note: scale pixel values from [0, 255] to [-1.0, 1.0]
+        batch_incomplete = batch_pos * (1. - masks)  # pharrell note: get surrounding values
         # inpaint
         x1, x2, flow = self.build_inpaint_net(
             batch_incomplete, masks, reuse=reuse, training=is_training,
             config=None)
         batch_predict = x2
         # apply mask and reconstruct
-        batch_complete = batch_predict*masks + batch_incomplete*(1-masks)
+        batch_complete = batch_predict*masks + batch_incomplete*(1-masks)  # pharrell note: add predicted missing part (``batch_predict*masks``) with original incomplete part (``batch_incomplete*(1-masks)``).
         return batch_complete
